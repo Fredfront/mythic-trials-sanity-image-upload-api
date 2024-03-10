@@ -1,7 +1,6 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const multer = require('multer');
-const fs = require('fs');
 require('dotenv').config();
 const cors = require('cors');
 
@@ -21,14 +20,14 @@ const token = process.env.SANITY_API_TOKEN;
 const baseUrl = `https://${projectId}.api.sanity.io/v${new Date().toISOString().slice(0, 10)}/assets/images/${dataset}`;
 
 // Set up multer for handling file uploads
-// Set up multer for handling file uploads
 const upload = multer({
-  dest: 'uploads/',
+  storage: multer.memoryStorage(),
   limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB file size limit
+    fileSize: 2 * 1024 * 1024,  // 2MB file size limit
   },
-});
-//Deny if not from the right origin
+}).single('image');
+
+// Middleware to check the origin
 app.use((req, res, next) => {
   if (req.get('origin') === 'https://mythic-trials.vercel.app') {
     next();
@@ -38,18 +37,15 @@ app.use((req, res, next) => {
 });
 
 // Route to handle image upload
-app.post('/uploadImage', upload.single('image'), async (req, res) => {
+app.post('/uploadImage', upload, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const imageBuffer = fs.readFileSync(req.file.path);
-    fs.unlinkSync(req.file.path); // Delete the temporary file
-
-    const response = await fetch(`${baseUrl}?filename=${req.file.filename}  `, {
+    const response = await fetch(`${baseUrl}?filename=${req.file.originalname}`, {
       method: 'POST',
-      body: imageBuffer,
+      body: req.file.buffer, // Access file buffer directly from multer
       headers: {
         'Content-Type': req.file.mimetype,
         Authorization: `Bearer ${token}`,
