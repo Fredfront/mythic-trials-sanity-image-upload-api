@@ -7,10 +7,11 @@ const cors = require('cors');
 const app = express();
 const PORT = 8080;
 
-const corsOption = {
-  origin: 'https://mythic-trials.vercel.app',
+const corsOptions = {
+  origin: ['https://mythic-trials.vercel.app', 'http://localhost:3000'],
 };
-app.use(cors(corsOption));
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const projectId = process.env.SANITY_PROJECT_ID;
@@ -29,11 +30,12 @@ const upload = multer({
 
 // Middleware to check the origin
 app.use((req, res, next) => {
-  if (req.get('origin') === 'https://mythic-trials.vercel.app') {
-    next();
-  } else {
-    res.status(403).send('Forbidden');
+  const allowedOrigins = ['https://mythic-trials.vercel.app', 'http://localhost:3000'];
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
   }
+  next();
 });
 
 // Route to handle image upload
